@@ -1,0 +1,51 @@
+{
+  "name": "@daostack/dxmonitorbot",
+  "version": "1.0.0",
+  "description": "Monitor dxDAO on DAOstack platform",
+  "main": "index.js",
+  "engines": {
+    "node": ">=10.15.0"
+  },
+  "keywords": [
+    "DAO",
+    "DAOstack",
+    "Arc",
+    "Ethereum",
+    "Blockchain"
+  ],
+  "author": "DAOstack (https://www.daostack.io)",
+  "license": "GPL-3.0",
+  "scripts": {
+    "lint": "eslint .",
+    "lint-fix": "eslint . --fix",
+    "start": "rm out.log && rm error.log && forever start ./forever-conf.json",
+    "stop": "forever stop dxdao-monitor-bot",
+    "logs": "tail -f out.log"
+  },
+  "dependencies": {
+    "@daostack/ganache-cli": "6.4.3",
+    "@daostack/migration": "0.0.1-rc.41-v7",
+    "axios": "^0.19.0",
+    "dotenv": "^8.0.0",
+    "fstream": "^1.0.12",
+    "graphql": "^14.5.6",
+    "graphql-request": "^1.8.2",
+    "nodemailer": "^6.2.1",
+    "swarm-js": "^0.1.39",
+    "tar": "^4.4.8",
+    "web3": "1.0.0-beta.55",
+    "yargs": "^12.0.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.13",
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.16.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-jest": "^22.6.4",
+    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "jest": "^24.8.0"
+  }
+}
