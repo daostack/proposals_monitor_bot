@@ -1,0 +1,40 @@
+{
+    "Avatar": "0x519b70055af55a007110b4ff99b0ea33071c720a",
+    "Schemes": {
+        "ContributionReward": {
+            "contract": "ContributionReward",
+            "address": "0x08cc7bba91b849156e9c44ded51896b38400f55b",
+            "arcVersion": "0.0.1-rc.19"
+        },
+        "SchemeRegistrar": {
+            "contract": "SchemeRegistrar",
+            "address": "0xf050F3C6772Ff35eB174A6900833243fcCD0261F",
+            "arcVersion": "0.0.1-rc.19"
+        },
+        "DutchX": {
+            "contract": "GenericScheme",
+            "address": "0x199719EE4d5DCF174B80b80afa1FE4a8e5b0E3A0",
+            "arcVersion": "0.0.1-rc.19"
+        },
+        "GenericSchemeENSPublicProvider": {
+            "contract": "GenericScheme",
+            "address": "0x9a543aef934c21da5814785e38f9a7892d3cde6e",
+            "arcVersion": "0.0.1-rc.36"
+        },
+        "GenericSchemeENSRegistry": {
+            "contract": "GenericScheme",
+            "address": "0x46df3ea38a680fbc84e744d92b0a8ec717b2ea7e",
+            "arcVersion": "0.0.1-rc.36"
+        },
+        "GenericSchemeENSETHRegistry": {
+            "contract": "GenericScheme",
+            "address": "0x973ce4e81bdc3bd39f46038f3aaa928b04558b08",
+            "arcVersion": "0.0.1-rc.36"
+        },
+        "GenericSchemeENSRegistryWithFallback": {
+            "contract": "GenericScheme",
+            "address": "0x9cea0dd05c4344a769b2f4c2f8890eda8a700d64",
+            "arcVersion": "0.0.1-rc.36"
+        }
+    }
+}

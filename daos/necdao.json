@@ -1,0 +1,30 @@
+{
+    "Avatar": "0xE56b4D8d42b1C9eA7dda8A6950e3699755943DE7",
+    "Schemes": {
+        "ContributionReward": {
+            "contract": "ContributionReward",
+            "address": "0x97eb59fa3a1784d86746322424446913c19192ae",
+            "arcVersion": "0.0.1-rc.34"
+        },
+        "SchemeRegistrar": {
+            "contract": "SchemeRegistrar",
+            "address": "0x59897f2f9ecec811689b575be269487acd794d02",
+            "arcVersion": "0.0.1-rc.34"
+        },
+        "GenericSchemeENSPublicProvider": {
+            "contract": "GenericScheme",
+            "address": "0xD7aCd0a6985345810A0f87b58f4f90287cEa15Cc",
+            "arcVersion": "0.0.1-rc.34"
+        },
+        "GenericSchemeENSRegistry": {
+            "contract": "GenericScheme",
+            "address": "0x533aD184434676679F3a42723408197B7A34a4A1",
+            "arcVersion": "0.0.1-rc.34"
+        },
+        "GenericSchemeRegistryLookup": {
+            "contract": "GenericScheme",
+            "address": "0x60FE6a11BDed577e8fa3572272e7920197aFEDbC",
+            "arcVersion": "0.0.1-rc.34"
+        }
+    }
+}
