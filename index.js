@@ -64,7 +64,7 @@ async function schemeRegistrarMonitoring(schemeRegistrarAddress) {
   let schemeRegistrar = new web3.eth.Contract(SchemeRegistrar, schemeRegistrarAddress);
   log('Started listening to NewSchemeProposal events of SchemeRegistrar: ' + schemeRegistrarAddress);
 
-  schemeRegistrar.events.NewSchemeProposal({ fromBlock: scanFromBlock }, async (error, events) => {
+  let callback = async (error, events) => {
     if (!error) {
       let proposalId = events.returnValues._proposalId;
       let avatar = events.returnValues._avatar.toLowerCase();
@@ -77,7 +77,9 @@ async function schemeRegistrarMonitoring(schemeRegistrarAddress) {
     } else {
       log('Failed to start event listener');
     }
-  })
+  }
+  schemeRegistrar.events.NewSchemeProposal({ fromBlock: scanFromBlock }, callback)
+  schemeRegistrar.events.RemoveSchemeProposal({ fromBlock: scanFromBlock }, callback)
 }
 
 async function contributionRewardMonitoring(contributionRewardAddress) {
