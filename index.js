@@ -102,8 +102,16 @@ async function contributionRewardMonitoring(dao, avatarAddress, schemeName, addr
       let ethReward = web3.utils.fromWei(rewards[1] + '');
       let externalTokenReward = web3.utils.fromWei(rewards[2] + '');
       let reputationReward = web3.utils.fromWei(events.returnValues._reputationChange + '');
+      const Avatar = require('@daostack/migration/contracts/' + arcVersion + '/Avatar.json').abi;
+      let avatarContract = new web3.eth.Contract(Avatar, avatarAddress);
+      const Reputation = require('@daostack/migration/contracts/' + arcVersion + '/Reputation.json').abi;
+      let reputation = await avatarContract.methods.nativeReputation().call();
+      let reputationContract = new web3.eth.Contract(Reputation, reputation);
+      let totalReputation = web3.utils.fromWei((await reputationContract.methods.totalSupply().call()) + '');
+      let isSuspiciousRep = reputationReward > (totalReputation / 100 * 5)
+
       if (isAvatarMatch(avatar, avatarAddress) && (
-          ethReward > 10 || reputationReward > 30000 || externalTokenReward > 20000
+          ethReward > 10 || isSuspiciousRep || externalTokenReward > 20000
         )) {
           let proposalData = 'DAO: ' + dao + ' | Contribution Reward Proposal: ' + proposalId + ' is requesting: ' + ethReward + ' ETH, ' + reputationReward + ' reputation, ' + externalTokenReward + ' tokens'
           log(proposalData);
