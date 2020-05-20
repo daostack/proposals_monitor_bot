@@ -16,6 +16,8 @@ const Web3 = require('web3');
 const web3 = new Web3(new Web3.providers.WebsocketProvider(web3WSProvider));
 let scanFromBlock;
 
+let TG_CHATS = {};
+
 function isAvatarMatch(a1, a2) {
   return a1.toLowerCase() === a2.toLowerCase();
 }
@@ -34,7 +36,7 @@ async function genericSchemeMonitoring(dao, avatarAddress, schemeName, address, 
       if (isAvatarMatch(avatar, avatarAddress) && value > 0) {
         let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' 
         log(proposalData);
-        sendProposalAlert('Large Proposal', proposalData, avatar, proposalId)
+        sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId)
       }
     } else {
       log('Failed to start event listener');
@@ -56,7 +58,7 @@ async function uGenericSchemeMonitoring(dao, avatarAddress, schemeName, address,
       if (isAvatarMatch(avatar, avatarAddress) && value > 0) {
         let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' 
         log(proposalData);
-        sendProposalAlert('Large Proposal', proposalData, avatar, proposalId)
+        sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId)
       }
     } else {
       log('Failed to start event listener');
@@ -77,7 +79,7 @@ async function schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address
       if (isAvatarMatch(avatar, avatarAddress)) {
         let proposalData = 'DAO: ' + dao + ' | Scheme Registrar Proposal: ' + proposalId 
         log(proposalData);
-        sendProposalAlert('Scheme Registrar Proposal', proposalData, avatar, proposalId)
+        sendProposalAlert('Scheme Registrar Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId)
       }
     } else {
       log('Failed to start event listener');
@@ -105,7 +107,7 @@ async function contributionRewardMonitoring(dao, avatarAddress, schemeName, addr
         )) {
           let proposalData = 'DAO: ' + dao + ' | Contribution Reward Proposal: ' + proposalId + ' is requesting: ' + ethReward + ' ETH, ' + reputationReward + ' reputation, ' + externalTokenReward + ' tokens'
           log(proposalData);
-          sendProposalAlert('Large Proposal', proposalData, avatar, proposalId)
+          sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId)
       }
     } else {
       log('Failed to start event listener');
@@ -146,7 +148,8 @@ async function startBot() {
   const daos = fs.readdirSync('./daos');
   for (let dao of daos) {
     log('Started monitoring DAO: ' + dao.split('.json')[0])
-    const { Avatar, Schemes } = JSON.parse(fs.readFileSync(path.join('./daos', dao), 'utf-8'));
+    const { Avatar, Schemes, TG_CHAT_ID } = JSON.parse(fs.readFileSync(path.join('./daos', dao), 'utf-8'));
+    TG_CHATS[Avatar] = TG_CHAT_ID;
     for (let schemeName in Schemes) {
       let { contract, address, arcVersion } = Schemes[schemeName];
       await monitorContract(dao, Avatar, schemeName, contract, address, arcVersion);
