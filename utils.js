@@ -6,6 +6,14 @@ function sendProposalAlert(subject, text, chatID, avatar, proposalId) {
   });
 }
 
+function sendAlertToChat(subject, text, chatID) {
+  const axios = require('axios');
+  axios({
+    method: 'post',
+    url: 'https://api.telegram.org/bot' + process.env.TG_BOT + '/sendMessage?chat_id=' + chatID + '&parse_mode=HTML&text=<b>' + subject + '</b>\n' + text + '\n',
+  });
+}
+
 function sendAlert(subject, text) {
   const axios = require('axios');
   axios({

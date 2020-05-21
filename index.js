@@ -1,5 +1,6 @@
 let {
   sendAlert,
+  sendAlertToChat,
   sendProposalAlert,
   log
 } = require('./utils.js');
@@ -162,6 +163,10 @@ async function startBot() {
       let { contract, address, arcVersion } = Schemes[schemeName];
       await monitorContract(dao, Avatar, schemeName, contract, address, arcVersion);
     }
+
+    setInterval(function() { 
+      sendAlertToChat('Monitoring bot is running', 'This is a periodical automatic message to ensure the bot is live', TG_CHAT_ID);
+    }, 1000 * 60 * 60 * 12);
   }
 }
 
