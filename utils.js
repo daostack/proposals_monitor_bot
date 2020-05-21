@@ -33,6 +33,7 @@ function log(message) {
 
 module.exports = {
   sendAlert,
+  sendAlertToChat,
   sendProposalAlert,
   log
 };
