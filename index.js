@@ -166,7 +166,7 @@ async function startBot() {
 
     setInterval(function() { 
       sendAlertToChat('Monitoring bot is running', 'This is a periodical automatic message to ensure the bot is live', TG_CHAT_ID);
-    }, 1000 * 60 * 60 * 12);
+    }, 1000 * 60 * 60 * 6);
   }
 }
 
