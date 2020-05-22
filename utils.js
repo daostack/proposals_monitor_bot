@@ -1,8 +1,8 @@
-function sendProposalAlert(subject, text, chatID, avatar, proposalId) {
+function sendProposalAlert(subject, text, chatID, avatar, proposalId, state) {
   const axios = require('axios');
   axios({
     method: 'post',
-    url: 'https://api.telegram.org/bot' + process.env.TG_BOT + '/sendMessage?chat_id=' + chatID + '&parse_mode=HTML&text=<b>' + subject + '</b>\n' + text + '\n<a href="http://alchemy.daostack.io/dao/' + avatar + '/proposal/' + proposalId + '">Alchemy Proposal Page</a>\n',
+    url: 'https://api.telegram.org/bot' + process.env.TG_BOT + '/sendMessage?chat_id=' + chatID + '&parse_mode=HTML&text=<b' + (state === 'Boosted' || state === 'PreBoosted' ? ' style="color:red;">' : '>')  + subject + '</b>\n' + text + '\n<a href="http://alchemy.daostack.io/dao/' + avatar + '/proposal/' + proposalId + '">Alchemy Proposal Page</a>\n',
   });
 }
 

@@ -23,6 +23,88 @@ function isAvatarMatch(a1, a2) {
   return a1.toLowerCase() === a2.toLowerCase();
 }
 
+async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
+  // Start listening to events
+  genesisProtocol.events.StateChange({ fromBlock: scanFromBlock }, async (error, events) => {
+      if (!error) {
+        // Get the proposal and Genesis Protocol data
+        let proposalId = events.returnValues._proposalId;
+        let proposal = await genesisProtocol.methods.proposals(proposalId).call();
+
+        if (proposal === null) {
+          log(
+            proposalId +
+              ' on voting machine ' +
+              genesisProtocol.address +
+              'returned as null'
+          );
+          return;
+        }
+
+        if (proposal.state === 4 || proposal.state === 5) {
+          let org = await genesisProtocol.methods.organizations(proposal.organizationId).call();
+          const daos = fs.readdirSync('./daos');
+          for (let dao of daos) {
+            const { Avatar, Schemes } = JSON.parse(fs.readFileSync(path.join('./daos', dao), 'utf-8'));
+            if (isAvatarMatch(org, Avatar)) {
+              for (let schemeName in Schemes) {
+                let scheme = Schemes[schemeName];
+                if (scheme.address.toLowerCase() === proposal.callbacks.toLowerCase()) {
+                  let state;
+                  switch (proposal.state) {
+                    case 4:
+                      state = "PreBoosted"
+                      break;
+                    case 5:
+                      state = "Boosted"
+                      break;
+                  }
+                  switch(scheme.contract) {
+                    case 'ContributionReward':
+                      checkContributionRewardProposal(proposalId, scheme.address, Avatar, scheme.arcVersion, state);
+                      break;
+                    case 'SchemeRegistrar':
+                    case 'GenericScheme':
+                    case 'UGenericScheme':
+                      var proposalData = 'DAO: ' + dao + ' | ' + schemeName +' Proposal: ' + proposalId + ' | state: ' + state;
+                      log(proposalData);
+                      sendProposalAlert(schemeName + ' Proposal', proposalData, TG_CHATS[Avatar], Avatar, proposalId, state)
+                      break;
+                  }
+                }
+              } 
+            }
+          }
+        }
+
+      } else {
+        log('Failed to start event listener');
+      }
+    });
+}
+
+
+async function checkContributionRewardProposal(proposalId, crAddress, avatarAddress, arcVersion, state) {
+  const ContributionReward = require('@daostack/migration/contracts/' + arcVersion + '/ContributionReward.json').abi;
+  let contributionReward = new web3.eth.Contract(ContributionReward, crAddress);
+  let proposal = await contributionReward.methods.organizationsProposals(avatarAddress, proposalId).call();
+  let ethReward = web3.utils.fromWei(proposal.ethReward + '');
+  let externalTokenReward = web3.utils.fromWei(proposal.externalTokenReward + '');
+  let reputationReward = web3.utils.fromWei(proposal.reputationChange + '');
+  const Avatar = require('@daostack/migration/contracts/' + arcVersion + '/Avatar.json').abi;
+  let avatarContract = new web3.eth.Contract(Avatar, avatarAddress);
+  const Reputation = require('@daostack/migration/contracts/' + arcVersion + '/Reputation.json').abi;
+  let reputation = await avatarContract.methods.nativeReputation().call();
+  let reputationContract = new web3.eth.Contract(Reputation, reputation);
+  let totalReputation = web3.utils.fromWei((await reputationContract.methods.totalSupply().call()) + '');
+  let isSuspiciousRep = reputationReward > (totalReputation / 100 * 5) || reputationReward < (totalReputation / 100 * -5)
+  if ((ethReward > 10 || isSuspiciousRep) || externalTokenReward > 20000) {
+      let proposalData = 'DAO: ' + avatarAddress + ' | Contribution Reward Proposal: ' + proposalId + ' is requesting: ' + ethReward + ' ETH, ' + reputationReward + ' reputation, ' + externalTokenReward + ' tokens' + ' | state: ' + state;
+      log(proposalData);
+      sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, state)
+  }
+}
+
 async function genericSchemeMonitoring(dao, avatarAddress, schemeName, address, arcVersion) {
   const GenericScheme = require('@daostack/migration/contracts/' + arcVersion + '/GenericScheme.json').abi;
   let genericScheme = new web3.eth.Contract(GenericScheme, address);
@@ -35,14 +117,14 @@ async function genericSchemeMonitoring(dao, avatarAddress, schemeName, address, 
       let avatar = events.returnValues._avatar.toLowerCase();
 
       if (isAvatarMatch(avatar, avatarAddress) && value > 0) {
-        let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' 
+        let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' + ' | state: Queued'
         log(proposalData);
-        sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId)
+        sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
       }
     } else {
       log('Failed to start event listener');
     }
-  })
+  });
 }
 
 async function uGenericSchemeMonitoring(dao, avatarAddress, schemeName, address, arcVersion) {
@@ -57,14 +139,14 @@ async function uGenericSchemeMonitoring(dao, avatarAddress, schemeName, address,
       let avatar = events.returnValues._avatar.toLowerCase();
 
       if (isAvatarMatch(avatar, avatarAddress) && value > 0) {
-        let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' 
+        let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' + ' | state: Queued'
         log(proposalData);
-        sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId)
+        sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
       }
     } else {
       log('Failed to start event listener');
     }
-  })
+  });
 }
 
 async function schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address, arcVersion) {
@@ -78,16 +160,16 @@ async function schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address
       let avatar = events.returnValues._avatar.toLowerCase();
 
       if (isAvatarMatch(avatar, avatarAddress)) {
-        let proposalData = 'DAO: ' + dao + ' | Scheme Registrar Proposal: ' + proposalId 
+        let proposalData = 'DAO: ' + dao + ' | Scheme Registrar Proposal: ' + proposalId  + ' | state: Queued'
         log(proposalData);
-        sendProposalAlert('Scheme Registrar Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId)
+        sendProposalAlert('Scheme Registrar Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
       }
     } else {
       log('Failed to start event listener');
     }
   }
-  schemeRegistrar.events.NewSchemeProposal({ fromBlock: scanFromBlock }, callback)
-  schemeRegistrar.events.RemoveSchemeProposal({ fromBlock: scanFromBlock }, callback)
+  schemeRegistrar.events.NewSchemeProposal({ fromBlock: scanFromBlock }, callback);
+  schemeRegistrar.events.RemoveSchemeProposal({ fromBlock: scanFromBlock }, callback);
 }
 
 async function contributionRewardMonitoring(dao, avatarAddress, schemeName, address, arcVersion) {
@@ -114,9 +196,9 @@ async function contributionRewardMonitoring(dao, avatarAddress, schemeName, addr
       if (isAvatarMatch(avatar, avatarAddress) && (
           ethReward > 10 || isSuspiciousRep || externalTokenReward > 20000
         )) {
-          let proposalData = 'DAO: ' + dao + ' | Contribution Reward Proposal: ' + proposalId + ' is requesting: ' + ethReward + ' ETH, ' + reputationReward + ' reputation, ' + externalTokenReward + ' tokens'
+          let proposalData = 'DAO: ' + dao + ' | Contribution Reward Proposal: ' + proposalId + ' is requesting: ' + ethReward + ' ETH, ' + reputationReward + ' reputation, ' + externalTokenReward + ' tokens' + ' | state: Queued'
           log(proposalData);
-          sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId)
+          sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
       }
     } else {
       log('Failed to start event listener');
@@ -167,6 +249,24 @@ async function startBot() {
     setInterval(function() { 
       sendAlertToChat('Monitoring bot is running', 'This is a periodical automatic message to ensure the bot is live', TG_CHAT_ID);
     }, 1000 * 60 * 60 * 6);
+  }
+  const DAOstackMigration = require('@daostack/migration');
+  let migration = DAOstackMigration.migration('mainnet');
+  let activeVMs = [];
+  for (let version in migration.base) {
+    const GenesisProtocol = require('@daostack/migration/contracts/' +
+      version +
+      '/GenesisProtocol.json').abi;
+    let gpAddress = migration.base[version].GenesisProtocol;
+    if (activeVMs.indexOf(gpAddress) !== -1) {
+      continue;
+    }
+    activeVMs.push(gpAddress);
+    let genesisProtocol = new web3.eth.Contract(GenesisProtocol, gpAddress);
+    // Subscrice to StateChange events of the Genesis Protocol
+    log('Started listening to StateChange events of Genesis Protocol: ' + gpAddress);
+
+    await listenProposalsStateChanges(genesisProtocol, scanFromBlock);
   }
 }
 
