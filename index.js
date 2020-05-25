@@ -324,16 +324,19 @@ async function startBot() {
 
   const daos = fs.readdirSync('./daos');
   for (let dao of daos) {
+    let aliveNotificationData = 'This is a periodical automatic message to ensure the bot is live.\nSchemes Tracked:\n';
+
     log('Started monitoring DAO: ' + dao.split('.json')[0])
     const { Avatar, Schemes, TG_CHAT_ID } = JSON.parse(fs.readFileSync(path.join('./daos', dao), 'utf-8'));
     TG_CHATS[Avatar] = TG_CHAT_ID;
     for (let schemeName in Schemes) {
       let { contract, address, arcVersion } = Schemes[schemeName];
       await monitorContract(dao, Avatar, schemeName, contract, address, arcVersion);
+      aliveNotificationData += schemeName + ': ' + address + '\n'
     }
 
-    setInterval(function() { 
-      sendAlertToChat('Monitoring bot is running', 'This is a periodical automatic message to ensure the bot is live', TG_CHAT_ID);
+    setInterval(function() {
+      sendAlertToChat('Monitoring bot is running', aliveNotificationData, TG_CHAT_ID);
     }, 1000 * 60 * 60 * 6);
   }
 
