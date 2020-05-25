@@ -19,6 +19,10 @@ let scanFromBlock;
 
 let TG_CHATS = {};
 
+let votingMachines = {};
+
+let preBoostedCounterPerScheme = {}
+
 function isAvatarMatch(a1, a2) {
   return a1.toLowerCase() === a2.toLowerCase();
 }
@@ -54,6 +58,7 @@ async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
                   switch (proposal.state) {
                     case 4:
                       state = "PreBoosted"
+                      checkPreBoostedNewProposalEvent(events, scheme.address, Avatar, genesisProtocol.options.address)
                       break;
                     case 5:
                       state = "Boosted"
@@ -109,6 +114,7 @@ async function genericSchemeMonitoring(dao, avatarAddress, schemeName, address, 
   const GenericScheme = require('@daostack/migration/contracts/' + arcVersion + '/GenericScheme.json').abi;
   let genericScheme = new web3.eth.Contract(GenericScheme, address);
   log('Started listening to NewCallProposal events of ' + schemeName + ' (GenericScheme): ' + address);
+  await initGenericSchemePreBoostedCount(genericScheme, avatarAddress, address, arcVersion);
 
   genericScheme.events.NewCallProposal({ fromBlock: scanFromBlock }, async (error, events) => {
     if (!error) {
@@ -131,6 +137,7 @@ async function uGenericSchemeMonitoring(dao, avatarAddress, schemeName, address,
   const GenericScheme = require('@daostack/migration/contracts/' + arcVersion + '/UGenericScheme.json').abi;
   let genericScheme = new web3.eth.Contract(GenericScheme, address);
   log('Started listening to NewCallProposal events of ' + schemeName + ' (UGenericScheme): ' + address);
+  await initGenericSchemePreBoostedCount(genericScheme, avatarAddress, address, arcVersion);
 
   genericScheme.events.NewCallProposal({ fromBlock: scanFromBlock }, async (error, events) => {
     if (!error) {
@@ -153,12 +160,13 @@ async function schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address
   const SchemeRegistrar = require('@daostack/migration/contracts/' + arcVersion + '/SchemeRegistrar.json').abi;
   let schemeRegistrar = new web3.eth.Contract(SchemeRegistrar, address);
   log('Started listening to NewSchemeProposal and RemoveSchemeProposal events of ' + schemeName + ' (SchemeRegistrar): ' + address);
+  
+  await initSchemeRegistrarPreBoostedCount(schemeRegistrar, avatarAddress, address);
 
   let callback = async (error, events) => {
     if (!error) {
       let proposalId = events.returnValues._proposalId;
       let avatar = events.returnValues._avatar.toLowerCase();
-
       if (isAvatarMatch(avatar, avatarAddress)) {
         let proposalData = 'DAO: ' + dao + ' | Scheme Registrar Proposal: ' + proposalId  + ' | state: Queued'
         log(proposalData);
@@ -176,7 +184,7 @@ async function contributionRewardMonitoring(dao, avatarAddress, schemeName, addr
   const ContributionReward = require('@daostack/migration/contracts/' + arcVersion + '/ContributionReward.json').abi;
   let contributionReward = new web3.eth.Contract(ContributionReward, address);
   log('Started listening to NewContributionProposal events of ' + schemeName + ' (ContributionReward): ' + address);
-
+  await initContributionRewardPreBoostedCount(contributionReward, avatarAddress, address);
   contributionReward.events.NewContributionProposal({ fromBlock: scanFromBlock }, async (error, events) => {
     if (!error) {
       let proposalId = events.returnValues._proposalId;
@@ -206,19 +214,82 @@ async function contributionRewardMonitoring(dao, avatarAddress, schemeName, addr
   });
 }
 
+async function initContributionRewardPreBoostedCount(contributionReward, avatarAddress, address) {
+  let events = await contributionReward.getPastEvents('NewContributionProposal', { fromBlock: scanFromBlock - (4 * 60 * 24 * 30 * 3), toBlock: scanFromBlock });
+  for (let event of events) {
+    let votingMachine = event.returnValues._intVoteInterface.toLowerCase();
+    await checkPreBoostedNewProposalEvent(event, address, avatarAddress, votingMachine)
+  }
+}
+
+async function initGenericSchemePreBoostedCount(genericScheme, avatarAddress, address, arcVersion) {
+  let events = await genericScheme.getPastEvents('NewCallProposal', { fromBlock: scanFromBlock - (4 * 60 * 24 * 30 * 3), toBlock: scanFromBlock });
+  for (let event of events) {
+    await checkGenericSchemePreBoostedNewProposalEvent(genericScheme, event, address, avatarAddress, arcVersion)
+  }
+}
+
+async function initSchemeRegistrarPreBoostedCount(schemeRegistrar, avatarAddress, address) {
+  let events = await schemeRegistrar.getPastEvents('NewSchemeProposal', { fromBlock: scanFromBlock - (4 * 60 * 24 * 30 * 3), toBlock: scanFromBlock });
+  for (let event of events) {
+    let votingMachine = event.returnValues._intVoteInterface.toLowerCase();
+    await checkPreBoostedNewProposalEvent(event, address, avatarAddress, votingMachine)
+  }
+
+  events = await schemeRegistrar.getPastEvents('RemoveSchemeProposal', { fromBlock: scanFromBlock - (4 * 60 * 24 * 30 * 3), toBlock: scanFromBlock });
+  for (let event of events) {
+    let votingMachine = event.returnValues._intVoteInterface.toLowerCase();
+    await checkPreBoostedNewProposalEvent(event, address, avatarAddress, votingMachine)
+  }
+}
+
+async function checkGenericSchemePreBoostedNewProposalEvent(genericScheme, event, schemeAddress, avatarAddress, arcVersion) {
+  if (genericScheme.methods.votingMachine) {
+    let votingMachine = await genericScheme.methods.votingMachine().call();
+    await checkPreBoostedNewProposalEvent(event, schemeAddress, avatarAddress, votingMachine.toLowerCase())
+  } else {
+    const Avatar = require('@daostack/migration/contracts/' + arcVersion + '/Avatar.json').abi;
+    let avatarContract = new web3.eth.Contract(Avatar, avatarAddress);
+    const Controller = require('@daostack/migration/contracts/' + arcVersion + '/Controller.json').abi;
+    let controller = new web3.eth.Contract(Controller, (await avatarContract.methods.owner().call()));
+    let parametersHash = await controller.methods.getSchemeParameters(schemeAddress, avatarAddress).call();
+    let parameters = await genericScheme.methods.parameters(parametersHash).call();
+    let votingMachine = parameters.intVote;
+    await checkPreBoostedNewProposalEvent(event, schemeAddress, avatarAddress, votingMachine.toLowerCase())
+  }
+}
+
+async function checkPreBoostedNewProposalEvent(event, schemeAddress, avatarAddress, votingMachine) {
+  let proposalId = event.returnValues._proposalId;
+  if (votingMachines[votingMachine.toLowerCase()]) {
+    let proposal = await votingMachines[votingMachine].methods.proposals(proposalId).call();
+    if (proposal.state === 4) {
+      if (!preBoostedCounterPerScheme[schemeAddress + avatarAddress]) {
+        preBoostedCounterPerScheme[schemeAddress + avatarAddress] = 0;
+      }
+      preBoostedCounterPerScheme[schemeAddress + avatarAddress]++;
+      if (preBoostedCounterPerScheme[schemeAddress + avatarAddress] >= 20) {
+        let messageData = 'PreBoosted Queue of Scheme ' + schemeAddress + ' of DAO: ' + avatarAddress + ' has ' + preBoostedCounterPerScheme[schemeAddress + avatarAddress] + ' proposals.\nConsider down-boosting to avoid too large queue.';
+        log(messageData);
+        sendProposalAlert('PreBoosted Queue Filling Up', messageData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'PreBoosted')
+      }
+    }
+  }
+}
+
 async function monitorContract(dao, avatarAddress, schemeName, contract, address, arcVersion){
   switch(contract) {
     case 'ContributionReward':
-      contributionRewardMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
+      await contributionRewardMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
       break;
     case 'SchemeRegistrar':
-      schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
+      await schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
       break;
     case 'GenericScheme':
-      genericSchemeMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
+      await genericSchemeMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
       break;
     case 'UGenericScheme':
-      uGenericSchemeMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
+      await uGenericSchemeMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
       break;
   }
 }
@@ -236,6 +307,21 @@ async function startBot() {
 
   scanFromBlock = (await web3.eth.getBlockNumber()) - (4 * 60); // 1 hour
 
+  const DAOstackMigration = require('@daostack/migration');
+  let migration = DAOstackMigration.migration('mainnet');
+  let activeVMs = [];
+  for (let version in migration.base) {
+    const GenesisProtocol = require('@daostack/migration/contracts/' + version + '/GenesisProtocol.json').abi;
+    let gpAddress = migration.base[version].GenesisProtocol.toLowerCase();
+    let genesisProtocol = new web3.eth.Contract(GenesisProtocol, gpAddress);
+    if (activeVMs.indexOf(gpAddress) !== -1) {
+      continue;
+    }
+    activeVMs.push(gpAddress);
+
+    votingMachines[gpAddress] = genesisProtocol;
+  }
+
   const daos = fs.readdirSync('./daos');
   for (let dao of daos) {
     log('Started monitoring DAO: ' + dao.split('.json')[0])
@@ -250,23 +336,12 @@ async function startBot() {
       sendAlertToChat('Monitoring bot is running', 'This is a periodical automatic message to ensure the bot is live', TG_CHAT_ID);
     }, 1000 * 60 * 60 * 6);
   }
-  const DAOstackMigration = require('@daostack/migration');
-  let migration = DAOstackMigration.migration('mainnet');
-  let activeVMs = [];
-  for (let version in migration.base) {
-    const GenesisProtocol = require('@daostack/migration/contracts/' +
-      version +
-      '/GenesisProtocol.json').abi;
-    let gpAddress = migration.base[version].GenesisProtocol;
-    if (activeVMs.indexOf(gpAddress) !== -1) {
-      continue;
-    }
-    activeVMs.push(gpAddress);
-    let genesisProtocol = new web3.eth.Contract(GenesisProtocol, gpAddress);
-    // Subscrice to StateChange events of the Genesis Protocol
-    log('Started listening to StateChange events of Genesis Protocol: ' + gpAddress);
 
-    await listenProposalsStateChanges(genesisProtocol, scanFromBlock);
+  for (let vm of activeVMs) {
+    // Subscribe to StateChange events of the Genesis Protocol
+    log('Started listening to StateChange events of Genesis Protocol: ' + vm);
+
+    await listenProposalsStateChanges(votingMachines[vm], scanFromBlock);
   }
 }
 
