@@ -122,7 +122,7 @@ async function genericSchemeMonitoring(dao, avatarAddress, schemeName, address, 
       let value = web3.utils.fromWei(events.returnValues._value + '');
       let avatar = events.returnValues._avatar.toLowerCase();
 
-      if (isAvatarMatch(avatar, avatarAddress) && value > 0) {
+      if (isAvatarMatch(avatar, avatarAddress)) {
         let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' + ' | state: Queued'
         log(proposalData);
         sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
@@ -145,7 +145,7 @@ async function uGenericSchemeMonitoring(dao, avatarAddress, schemeName, address,
       let value = web3.utils.fromWei(events.returnValues._value + '');
       let avatar = events.returnValues._avatar.toLowerCase();
 
-      if (isAvatarMatch(avatar, avatarAddress) && value > 0) {
+      if (isAvatarMatch(avatar, avatarAddress)) {
         let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' + ' | state: Queued'
         log(proposalData);
         sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
@@ -168,7 +168,47 @@ async function schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address
       let proposalId = events.returnValues._proposalId;
       let avatar = events.returnValues._avatar.toLowerCase();
       if (isAvatarMatch(avatar, avatarAddress)) {
-        let proposalData = 'DAO: ' + dao + ' | Scheme Registrar Proposal: ' + proposalId  + ' | state: Queued'
+        let newArcContract = 'Unknown Scheme';
+        let newArcVersion;
+        let votingMachine;
+        if (events.event === 'NewSchemeProposal') {
+          let bytecode = await web3.eth.getCode(events.returnValues._scheme)
+          const contracts = fs.readdirSync('./node_modules/@daostack/migration/contracts');
+          
+          for (let version of contracts) {
+            const versionContracts = fs.readdirSync('./node_modules/@daostack/migration/contracts/' + version);
+            for (let contract of versionContracts) {
+              let { deployedBytecode } = require('@daostack/migration/contracts/' + version + '/' + contract)
+              if (bytecode === deployedBytecode) {
+                newArcContract = contract;
+                newArcVersion = version;
+                break;
+              }
+            }
+            if (newArcVersion) {
+              const SchemeContract = require('@daostack/migration/contracts/' + newArcVersion + '/' + newArcContract).abi;
+              let schemeContract = new web3.eth.Contract(SchemeContract, events.returnValues._scheme);
+              if (schemeContract.methods.votingMachine) {
+                votingMachine = await schemeContract.methods.votingMachine().call();
+              } else {
+                let parameters = await schemeContract.methods.parameters(events.returnValues._parametersHash).call();
+                votingMachine = parameters.intVote;
+              }
+              break;
+            }
+          }
+        }
+
+        let proposalData = 'DAO: ' +
+        dao +
+        ' | Scheme Registrar Proposal: ' +
+        proposalId  +
+        ' proposing to register: ' +
+        newArcContract.split('.json')[0] +
+        ' with' +
+        (votingMachines[votingMachine.toLowerCase()] ? ' valid voting machine: ' : ' INVALID voting machine: ') +
+        votingMachine +
+        '  | state: Queued'
         log(proposalData);
         sendProposalAlert('Scheme Registrar Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
       }
