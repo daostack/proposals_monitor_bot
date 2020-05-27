@@ -167,10 +167,11 @@ async function schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address
     if (!error) {
       let proposalId = events.returnValues._proposalId;
       let avatar = events.returnValues._avatar.toLowerCase();
+      let proposalData;
       if (isAvatarMatch(avatar, avatarAddress)) {
         let newArcContract = 'Unknown Scheme';
         let newArcVersion;
-        let votingMachine;
+        let votingMachine = '';
         if (events.event === 'NewSchemeProposal') {
           let bytecode = await web3.eth.getCode(events.returnValues._scheme)
           const contracts = fs.readdirSync('./node_modules/@daostack/migration/contracts');
@@ -197,18 +198,26 @@ async function schemeRegistrarMonitoring(dao, avatarAddress, schemeName, address
               break;
             }
           }
+          proposalData = 'DAO: ' +
+          dao +
+          ' | Scheme Registrar Proposal: ' +
+          proposalId  +
+          ' proposing to register: ' +
+          newArcContract.split('.json')[0] +
+          ' with' +
+          (votingMachines[votingMachine.toLowerCase()] ? ' valid voting machine: ' : ' INVALID voting machine: ') +
+          votingMachine +
+          '  | state: Queued'
+        } else {
+          proposalData = 'DAO: ' +
+          dao +
+          ' | Scheme Registrar Proposal: ' +
+          proposalId  +
+          ' proposing to remove: ' +
+          events.returnValues._scheme +
+          '  | state: Queued'
         }
 
-        let proposalData = 'DAO: ' +
-        dao +
-        ' | Scheme Registrar Proposal: ' +
-        proposalId  +
-        ' proposing to register: ' +
-        newArcContract.split('.json')[0] +
-        ' with' +
-        (votingMachines[votingMachine.toLowerCase()] ? ' valid voting machine: ' : ' INVALID voting machine: ') +
-        votingMachine +
-        '  | state: Queued'
         log(proposalData);
         sendProposalAlert('Scheme Registrar Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
       }
