@@ -21,11 +21,6 @@
             "address": "0x9a543aef934c21da5814785e38f9a7892d3cde6e",
             "arcVersion": "0.0.1-rc.36"
         },
-        "GenericSchemeENSRegistry": {
-            "contract": "GenericScheme",
-            "address": "0x46df3ea38a680fbc84e744d92b0a8ec717b2ea7e",
-            "arcVersion": "0.0.1-rc.36"
-        },
         "GenericSchemeENSETHRegistry": {
             "contract": "GenericScheme",
             "address": "0x973ce4e81bdc3bd39f46038f3aaa928b04558b08",
@@ -39,6 +34,11 @@
         "GenericSchemeDXTokenRegistry": {
             "contract": "GenericScheme",
             "address": "0xc072171da83cce311e37bc1d168f54e6a6536df4",
+            "arcVersion": "0.0.1-rc.41"
+        },
+        "GenericSchemeENSPublicResolver": {
+            "contract": "GenericScheme",
+            "address": "0xb3ec6089556cca49549be01ff446cf40fa81c84d",
             "arcVersion": "0.0.1-rc.41"
         }
     },
