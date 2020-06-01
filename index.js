@@ -45,15 +45,20 @@ async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
           return;
         }
 
-        if (proposal.state === 4 || proposal.state === 5) {
+        if (proposal.state === 3 || (proposal.state === 4 || proposal.state === 5)) {
           let org = await genesisProtocol.methods.organizations(proposal.organizationId).call();
           const daos = fs.readdirSync('./daos');
           for (let dao of daos) {
             const { Avatar, Schemes } = JSON.parse(fs.readFileSync(path.join('./daos', dao), 'utf-8'));
             if (isAvatarMatch(org, Avatar)) {
+              let schemeTracked = false;
               for (let schemeName in Schemes) {
                 let scheme = Schemes[schemeName];
                 if (scheme.address.toLowerCase() === proposal.callbacks.toLowerCase()) {
+                  schemeTracked = true;
+                  if (proposal.state === 3) {
+                    break;
+                  }
                   let state;
                   switch (events.returnValues._proposalState) {
                     case 4:
@@ -78,6 +83,12 @@ async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
                   }
                 }
               } 
+              if (!schemeTracked) {
+                let proposalData = 'DAO: ' + Avatar + ' | Proposal: ' + proposalId + ' comes from a scheme the bot does not track: ' + proposal.callbacks.toLowerCase() + ' | state: ' + events.returnValues._proposalState;
+                log(proposalData);
+                sendProposalAlert('Proposal from Unknown Scheme', proposalData, TG_CHATS[Avatar], Avatar, proposalId, events.returnValues._proposalState)
+          
+              }
             }
           }
         }
@@ -354,7 +365,7 @@ async function startBot() {
     );
   });
 
-  scanFromBlock = (await web3.eth.getBlockNumber()) - (4 * 60); // 1 hour
+  scanFromBlock = (await web3.eth.getBlockNumber()) - (4 * 60 * 24); // 1 hour
 
   const DAOstackMigration = require('@daostack/migration');
   let migration = DAOstackMigration.migration('mainnet');
