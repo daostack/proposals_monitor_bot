@@ -45,7 +45,7 @@ async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
           return;
         }
 
-        if (proposal.state === 3 || (proposal.state === 4 || proposal.state === 5)) {
+        if (events.returnValues._proposalState === 3 || (events.returnValues._proposalState === 4 || events.returnValues._proposalState === 5)) {
           let org = await genesisProtocol.methods.organizations(proposal.organizationId).call();
           const daos = fs.readdirSync('./daos');
           for (let dao of daos) {
@@ -56,7 +56,7 @@ async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
                 let scheme = Schemes[schemeName];
                 if (scheme.address.toLowerCase() === proposal.callbacks.toLowerCase()) {
                   schemeTracked = true;
-                  if (proposal.state === 3) {
+                  if (events.returnValues._proposalState === 3) {
                     break;
                   }
                   let state;
