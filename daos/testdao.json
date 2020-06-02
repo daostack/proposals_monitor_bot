@@ -1,0 +1,21 @@
+{
+  "Avatar": "0x606c92B7151A89F0584D823F16D90ebD2c38B1B5",
+  "Schemes": {
+    "ContributionReward": {
+        "contract": "ContributionReward",
+        "address": "0x08cc7bba91b849156e9c44ded51896b38400f55b",
+        "arcVersion": "0.0.1-rc.19"
+    },
+    "SchemeRegistrar": {
+        "contract": "SchemeRegistrar",
+        "address": "0xf050F3C6772Ff35eB174A6900833243fcCD0261F",
+        "arcVersion": "0.0.1-rc.19"
+    },
+    "GenericScheme": {
+        "contract": "GenericScheme",
+        "address": "0xBD9Ca6fE41cE092CE5FA5545dB7Ab09ec5587801",
+        "arcVersion": "0.0.1-rc.41"
+    }
+  },
+  "TG_CHAT_ID": "-439644332"
+}
