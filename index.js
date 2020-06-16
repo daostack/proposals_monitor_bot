@@ -56,11 +56,11 @@ async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
                 let scheme = Schemes[schemeName];
                 if (scheme.address.toLowerCase() === proposal.callbacks.toLowerCase()) {
                   schemeTracked = true;
-                  if (events.returnValues._proposalState === 3) {
-                    break;
-                  }
                   let state;
                   switch (events.returnValues._proposalState) {
+                    case 3:
+                      state = "Queued"
+                      break;
                     case 4:
                       state = "PreBoosted"
                       checkPreBoostedNewProposalEvent(events, scheme.address, Avatar, genesisProtocol.options.address)
