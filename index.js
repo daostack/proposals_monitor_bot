@@ -378,7 +378,7 @@ async function startBot() {
     );
   });
 
-  scanFromBlock = (await web3.eth.getBlockNumber()) - (4 * 60 * 120); // 1 hour
+  scanFromBlock = (await web3.eth.getBlockNumber()) - (4 * 60); // 1 hour
 
   const DAOstackMigration = require('@daostack/migration');
   let migration = DAOstackMigration.migration('mainnet');
