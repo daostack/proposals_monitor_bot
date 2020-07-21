@@ -22,6 +22,7 @@ let TG_CHATS = {};
 let votingMachines = {};
 
 let preBoostedCounterPerScheme = {}
+let preBoostedProposals = {}
 
 function isAvatarMatch(a1, a2) {
   return a1.toLowerCase() === a2.toLowerCase();
@@ -34,6 +35,15 @@ async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
         // Get the proposal and Genesis Protocol data
         let proposalId = events.returnValues._proposalId;
         let proposal = await genesisProtocol.methods.proposals(proposalId).call();
+        if (proposal.state !== 4) {
+          for (let id in preBoostedProposals) {
+            const index = preBoostedProposals[id].indexOf(proposalId);
+            if (index > -1) {
+              preBoostedProposals[id].splice(index, 1);
+              preBoostedCounterPerScheme[id]--;
+            }
+          }
+        }
 
         if (proposal === null) {
           log(
@@ -325,9 +335,12 @@ async function checkPreBoostedNewProposalEvent(event, schemeAddress, avatarAddre
     let proposal = await votingMachines[votingMachine].methods.proposals(proposalId).call();
     if (proposal.state === 4) {
       if (!preBoostedCounterPerScheme[schemeAddress + avatarAddress]) {
+        preBoostedProposals[schemeAddress + avatarAddress] = [];
         preBoostedCounterPerScheme[schemeAddress + avatarAddress] = 0;
       }
       preBoostedCounterPerScheme[schemeAddress + avatarAddress]++;
+      preBoostedProposals[schemeAddress + avatarAddress].push(proposalId);
+
       if (preBoostedCounterPerScheme[schemeAddress + avatarAddress] >= 20) {
         let messageData = 'PreBoosted Queue of Scheme ' + schemeAddress + ' of DAO: ' + avatarAddress + ' has ' + preBoostedCounterPerScheme[schemeAddress + avatarAddress] + ' proposals.\nConsider down-boosting to avoid too large queue.';
         log(messageData);
@@ -365,7 +378,7 @@ async function startBot() {
     );
   });
 
-  scanFromBlock = (await web3.eth.getBlockNumber()) - (4 * 60); // 1 hour
+  scanFromBlock = (await web3.eth.getBlockNumber()) - (4 * 60 * 120); // 1 hour
 
   const DAOstackMigration = require('@daostack/migration');
   let migration = DAOstackMigration.migration('mainnet');
