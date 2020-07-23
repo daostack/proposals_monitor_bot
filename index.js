@@ -2,7 +2,8 @@ let {
   sendAlert,
   sendAlertToChat,
   sendProposalAlert,
-  log
+  log,
+  getMaxExternalTokenReward
 } = require('./utils.js');
 
 require('dotenv').config();
@@ -124,7 +125,7 @@ async function checkContributionRewardProposal(proposalId, crAddress, avatarAddr
   let reputationContract = new web3.eth.Contract(Reputation, reputation);
   let totalReputation = web3.utils.fromWei((await reputationContract.methods.totalSupply().call()) + '');
   let isSuspiciousRep = reputationReward > (totalReputation / 100 * 5) || reputationReward < (totalReputation / 100 * -5)
-  if ((ethReward > 10 || isSuspiciousRep) || externalTokenReward > 20000) {
+  if ((ethReward > 10 || isSuspiciousRep) || externalTokenReward > getMaxExternalTokenReward(proposal.externalToken.toLowerCase())) {
       let proposalData = 'DAO: ' + avatarAddress + ' | Contribution Reward Proposal: ' + proposalId + ' is requesting: ' + ethReward + ' ETH, ' + reputationReward + ' reputation, ' + externalTokenReward + ' tokens' + ' | state: ' + state;
       log(proposalData);
       sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, state)
@@ -269,10 +270,9 @@ async function contributionRewardMonitoring(dao, avatarAddress, schemeName, addr
       let reputation = await avatarContract.methods.nativeReputation().call();
       let reputationContract = new web3.eth.Contract(Reputation, reputation);
       let totalReputation = web3.utils.fromWei((await reputationContract.methods.totalSupply().call()) + '');
-      let isSuspiciousRep = reputationReward > (totalReputation / 100 * 5)
-
+      let isSuspiciousRep = reputationReward > (totalReputation / 100 * 5);
       if (isAvatarMatch(avatar, avatarAddress) && (
-          ethReward > 10 || isSuspiciousRep || externalTokenReward > 20000
+          ethReward > 10 || isSuspiciousRep || externalTokenReward > getMaxExternalTokenReward(events.returnValues._externalToken.toLowerCase())
         )) {
           let proposalData = 'DAO: ' + dao + ' | Contribution Reward Proposal: ' + proposalId + ' is requesting: ' + ethReward + ' ETH, ' + reputationReward + ' reputation, ' + externalTokenReward + ' tokens' + ' | state: Queued'
           log(proposalData);
