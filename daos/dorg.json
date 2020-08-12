@@ -12,7 +12,7 @@
             "arcVersion": "0.0.1-rc.33"
         },
         "GenesisProtocol": {
-            "contract": "GenericScheme",
+            "contract": "UGenericScheme",
             "address": "0x17825f606b206b97099f25eed705eda3550cdeb3",
             "arcVersion": "0.0.1-rc.33"
         }
