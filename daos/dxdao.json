@@ -16,6 +16,11 @@
             "address": "0x199719EE4d5DCF174B80b80afa1FE4a8e5b0E3A0",
             "arcVersion": "0.0.1-rc.19"
         },
+        "MultiCallScheme": {
+            "contract": "GenericSchemeMultiCall",
+            "address": "0xef9dc3c39ca40a2a3000acc5ca0467ce1c250808",
+            "arcVersion": "0.0.1-rc.51"
+        },
         "GenericSchemeENSPublicProvider": {
             "contract": "GenericScheme",
             "address": "0x9a543aef934c21da5814785e38f9a7892d3cde6e",

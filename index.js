@@ -86,6 +86,7 @@ async function listenProposalsStateChanges(genesisProtocol, scanFromBlock) {
                       break;
                     case 'SchemeRegistrar':
                     case 'GenericScheme':
+                    case 'GenericSchemeMultiCall':
                     case 'UGenericScheme':
                       var proposalData = 'DAO: ' + dao + ' | ' + schemeName +' Proposal: ' + proposalId + ' | state: ' + state;
                       log(proposalData);
@@ -146,6 +147,32 @@ async function genericSchemeMonitoring(dao, avatarAddress, schemeName, address, 
 
       if (isAvatarMatch(avatar, avatarAddress)) {
         let proposalData = 'DAO: ' + dao + ' | Generic Scheme Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' + ' | state: Queued'
+        log(proposalData);
+        sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
+      }
+    } else {
+      log('Failed to start event listener');
+    }
+  });
+}
+
+async function genericSchemeMultiCallMonitoring(dao, avatarAddress, schemeName, address, arcVersion) {
+  const GenericSchemeMultiCall = require('@daostack/migration/contracts/' + arcVersion + '/GenericSchemeMultiCall.json').abi;
+  let genericSchemeMultiCall = new web3.eth.Contract(GenericSchemeMultiCall, address);
+  log('Started listening to NewMultiCallProposal events of ' + schemeName + ' (GenericSchemeMultiCall): ' + address);
+  await initGenericSchemeMultiCallPreBoostedCount(genericSchemeMultiCall, avatarAddress, address, arcVersion);
+
+  genericSchemeMultiCall.events.NewMultiCallProposal({ fromBlock: scanFromBlock }, async (error, events) => {
+    if (!error) {
+      let proposalId = events.returnValues._proposalId;
+      let value
+      for (let v of events.returnValues._values) {
+        value += web3.utils.fromWei(v + '');
+      }
+      let avatar = events.returnValues._avatar.toLowerCase();
+
+      if (isAvatarMatch(avatar, avatarAddress)) {
+        let proposalData = 'DAO: ' + dao + ' | Generic Scheme Multi Call Proposal: ' + proposalId + ' is requesting to send : ' + value + ' ETH' + ' | state: Queued'
         log(proposalData);
         sendProposalAlert('Large Proposal', proposalData, TG_CHATS[avatarAddress], avatarAddress, proposalId, 'Queued')
       }
@@ -299,6 +326,13 @@ async function initGenericSchemePreBoostedCount(genericScheme, avatarAddress, ad
   }
 }
 
+async function initGenericSchemeMultiCallPreBoostedCount(genericSchemeMultiCall, avatarAddress, address, arcVersion) {
+  let events = await genericSchemeMultiCall.getPastEvents('NewMultiCallProposal', { fromBlock: scanFromBlock - (4 * 60 * 24 * 30 * 3), toBlock: scanFromBlock });
+  for (let event of events) {
+    await checkGenericSchemePreBoostedNewProposalEvent(genericSchemeMultiCall, event, address, avatarAddress, arcVersion)
+  }
+}
+
 async function initSchemeRegistrarPreBoostedCount(schemeRegistrar, avatarAddress, address) {
   let events = await schemeRegistrar.getPastEvents('NewSchemeProposal', { fromBlock: scanFromBlock - (4 * 60 * 24 * 30 * 3), toBlock: scanFromBlock });
   for (let event of events) {
@@ -360,6 +394,9 @@ async function monitorContract(dao, avatarAddress, schemeName, contract, address
       break;
     case 'GenericScheme':
       await genericSchemeMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
+      break;
+    case 'GenericSchemeMultiCall':
+      await genericSchemeMultiCallMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
       break;
     case 'UGenericScheme':
       await uGenericSchemeMonitoring(dao, avatarAddress, schemeName, address, arcVersion)
