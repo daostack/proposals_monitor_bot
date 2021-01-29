@@ -165,9 +165,12 @@ async function genericSchemeMultiCallMonitoring(dao, avatarAddress, schemeName, 
   genericSchemeMultiCall.events.NewMultiCallProposal({ fromBlock: scanFromBlock }, async (error, events) => {
     if (!error) {
       let proposalId = events.returnValues._proposalId;
-      let value
+      let value = 0
       for (let v of events.returnValues._values) {
-        value += web3.utils.fromWei(v + '');
+        let val = parseFloat(web3.utils.fromWei(v + ''));
+        if (!isNaN(val)) {
+          value += val;
+        }
       }
       let avatar = events.returnValues._avatar.toLowerCase();
 
