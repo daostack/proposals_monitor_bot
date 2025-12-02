@@ -30,7 +30,7 @@
     "fstream": "^1.0.12",
     "graphql": "^14.5.6",
     "graphql-request": "^1.8.2",
-    "nodemailer": "^6.2.1",
+    "nodemailer": "^7.0.11",
     "swarm-js": "^0.1.39",
     "tar": "^4.4.8",
     "web3": "1.0.0-beta.55",
